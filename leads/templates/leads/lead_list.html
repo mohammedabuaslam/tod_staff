@@ -1,0 +1,219 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block nav_leads_main %}active open{% endblock %}
+{% block nav_lead_list %}active{% endblock %}
+
+{% block content %}
+<div class="row">
+  <div class="col-12">
+    <div class="card">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">{{ title }}</h5>
+        <a href="{% url 'leads:lead_create' %}" class="btn btn-primary">
+          <i class="bx bx-plus me-1"></i>Create New Lead
+        </a>
+      </div>
+      <div class="card-body">
+        
+        <!-- Search and Filter Section -->
+        <div class="row mb-4">
+          <div class="col-12">
+            <form method="GET" class="d-flex flex-wrap gap-3 align-items-end">
+              <div class="flex-fill">
+                <label for="search" class="form-label">Search</label>
+                <input type="text" class="form-control" id="search" name="search" 
+                       value="{{ search_query }}" placeholder="Search by name, phone, email, or pincode">
+              </div>
+              <div style="min-width: 150px;">
+                <label for="status" class="form-label">Status</label>
+                <select class="form-select" id="status" name="status">
+                  <option value="">All Statuses</option>
+                  {% for value, label in lead_status_choices %}
+                    <option value="{{ value }}" {% if value == status_filter %}selected{% endif %}>{{ label }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div style="min-width: 150px;">
+                <label for="stage" class="form-label">Stage</label>
+                <select class="form-select" id="stage" name="stage">
+                  <option value="">All Stages</option>
+                  {% for value, label in lead_stage_choices %}
+                    <option value="{{ value }}" {% if value == stage_filter %}selected{% endif %}>{{ label }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div>
+                <button type="submit" class="btn btn-primary">
+                  <i class="bx bx-search me-1"></i>Filter
+                </button>
+              </div>
+              <div>
+                <a href="{% url 'leads:lead_list' %}" class="btn btn-outline-secondary">
+                  <i class="bx bx-refresh me-1"></i>Clear
+                </a>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <!-- Results Count -->
+        <div class="row mb-3">
+          <div class="col-12">
+            <p class="text-muted mb-0">
+              Showing {{ leads.start_index }}-{{ leads.end_index }} of {{ leads.paginator.count }} leads
+            </p>
+          </div>
+        </div>
+
+        <!-- Leads Table -->
+        <div class="table-responsive">
+          <table class="table table-hover">
+            <thead class="table-light">
+              <tr>
+                <th>Lead Name</th>
+                <th>Phone Number</th>
+                <th>Lead Stage</th>
+                <th>Lead Status</th>
+                <th>Pincode</th>
+                <th>Created Date</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for lead in leads %}
+                <tr>
+                  <td>
+                    <a href="{% url 'leads:lead_detail' lead_id=lead.lead_id %}" class="text-decoration-none">
+                      <strong>{{ lead.name|default:"Unknown" }}</strong>
+                    </a>
+                    {% if lead.email %}
+                      <br><small class="text-muted">{{ lead.email }}</small>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if lead.number %}
+                      <a href="{{ lead.get_whatsapp_link }}" target="_blank" class="text-decoration-none">
+                        <i class="bx bxl-whatsapp text-success me-1"></i>{{ lead.number }}
+                      </a>
+                    {% else %}
+                      <span class="text-muted">No phone</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <span class="badge bg-primary">{{ lead.get_lead_stage_display }}</span>
+                  </td>
+                  <td>
+                    {% if lead.lead_status == 'new' %}
+                      <span class="badge bg-info">{{ lead.get_lead_status_display }}</span>
+                    {% elif lead.lead_status == 'contacted' %}
+                      <span class="badge bg-warning">{{ lead.get_lead_status_display }}</span>
+                    {% elif lead.lead_status == 'qualified' %}
+                      <span class="badge bg-primary">{{ lead.get_lead_status_display }}</span>
+                    {% elif lead.lead_status == 'closed_won' %}
+                      <span class="badge bg-success">{{ lead.get_lead_status_display }}</span>
+                    {% elif lead.lead_status == 'closed_lost' %}
+                      <span class="badge bg-danger">{{ lead.get_lead_status_display }}</span>
+                    {% else %}
+                      <span class="badge bg-secondary">{{ lead.get_lead_status_display }}</span>
+                    {% endif %}
+                  </td>
+                  <td>{{ lead.pincode|default:"-" }}</td>
+                  <td>
+                    <small>{{ lead.get_ist_created_date|date:"M d, Y" }}</small>
+                    <br><small class="text-muted">{{ lead.get_ist_created_date|time:"h:i A" }}</small>
+                  </td>
+                  <td>
+                    <div class="dropdown">
+                      <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" 
+                              data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bx bx-dots-vertical-rounded"></i>
+                      </button>
+                      <ul class="dropdown-menu">
+                        <li>
+                          <a class="dropdown-item" href="{% url 'leads:lead_detail' lead_id=lead.lead_id %}">
+                            <i class="bx bx-show me-2"></i>View Details
+                          </a>
+                        </li>
+                        {% if lead.number %}
+                        <li>
+                          <a class="dropdown-item" href="{{ lead.get_whatsapp_link }}" target="_blank">
+                            <i class="bx bxl-whatsapp me-2"></i>WhatsApp
+                          </a>
+                        </li>
+                        {% endif %}
+                        {% if lead.email %}
+                        <li>
+                          <a class="dropdown-item" href="mailto:{{ lead.email }}">
+                            <i class="bx bx-envelope me-2"></i>Send Email
+                          </a>
+                        </li>
+                        {% endif %}
+                      </ul>
+                    </div>
+                  </td>
+                </tr>
+              {% empty %}
+                <tr>
+                  <td colspan="7" class="text-center py-4">
+                    <div class="text-muted">
+                      <i class="bx bx-search-alt-2 fs-2 mb-2"></i>
+                      <p class="mb-0">No leads found</p>
+                      {% if search_query or status_filter or stage_filter %}
+                        <small>Try adjusting your search criteria</small>
+                      {% else %}
+                        <small>Get started by creating your first lead</small>
+                      {% endif %}
+                    </div>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Pagination -->
+        {% if leads.has_other_pages %}
+          <nav aria-label="Leads pagination" class="mt-4">
+            <ul class="pagination justify-content-center">
+              {% if leads.has_previous %}
+                <li class="page-item">
+                  <a class="page-link" href="?page=1{% if search_query %}&search={{ search_query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if stage_filter %}&stage={{ stage_filter }}{% endif %}">
+                    First
+                  </a>
+                </li>
+                <li class="page-item">
+                  <a class="page-link" href="?page={{ leads.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if stage_filter %}&stage={{ stage_filter }}{% endif %}">
+                    Previous
+                  </a>
+                </li>
+              {% endif %}
+
+              <li class="page-item active">
+                <span class="page-link">
+                  Page {{ leads.number }} of {{ leads.paginator.num_pages }}
+                </span>
+              </li>
+
+              {% if leads.has_next %}
+                <li class="page-item">
+                  <a class="page-link" href="?page={{ leads.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if stage_filter %}&stage={{ stage_filter }}{% endif %}">
+                    Next
+                  </a>
+                </li>
+                <li class="page-item">
+                  <a class="page-link" href="?page={{ leads.paginator.num_pages }}{% if search_query %}&search={{ search_query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if stage_filter %}&stage={{ stage_filter }}{% endif %}">
+                    Last
+                  </a>
+                </li>
+              {% endif %}
+            </ul>
+          </nav>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

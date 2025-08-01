@@ -1,0 +1,140 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block nav_leads_main %}active open{% endblock %}
+{% block nav_tasks %}active{% endblock %}
+
+{% block content %}
+<div class="row">
+  <div class="col-12">
+    <div class="card">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">{{ title }}</h5>
+        <a href="{% url 'leads:lead_create' %}" class="btn btn-primary">
+          <i class="bx bx-plus me-1"></i>Create New Lead
+        </a>
+      </div>
+      <div class="card-body">
+        
+        {% if leads_with_tasks %}
+          <div class="row">
+            {% for lead in leads_with_tasks %}
+              <div class="col-md-6 col-lg-4 mb-4">
+                <div class="card h-100 border-start border-warning border-3">
+                  <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                      <h6 class="card-title mb-0">
+                        <a href="{% url 'leads:lead_detail' lead_id=lead.lead_id %}" class="text-decoration-none">
+                          {{ lead.name|default:"Unknown Lead" }}
+                        </a>
+                      </h6>
+                      <div class="dropdown">
+                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" 
+                                data-bs-toggle="dropdown" aria-expanded="false">
+                          <i class="bx bx-dots-vertical-rounded"></i>
+                        </button>
+                        <ul class="dropdown-menu">
+                          <li>
+                            <a class="dropdown-item" href="{% url 'leads:lead_detail' lead_id=lead.lead_id %}">
+                              <i class="bx bx-show me-2"></i>View Details
+                            </a>
+                          </li>
+                          {% if lead.number %}
+                          <li>
+                            <a class="dropdown-item" href="{{ lead.get_whatsapp_link }}" target="_blank">
+                              <i class="bx bxl-whatsapp me-2"></i>WhatsApp
+                            </a>
+                          </li>
+                          {% endif %}
+                          {% if lead.email %}
+                          <li>
+                            <a class="dropdown-item" href="mailto:{{ lead.email }}">
+                              <i class="bx bx-envelope me-2"></i>Send Email
+                            </a>
+                          </li>
+                          {% endif %}
+                        </ul>
+                      </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                      <div class="d-flex flex-wrap gap-1 mb-2">
+                        <span class="badge bg-primary text-xs">{{ lead.get_lead_stage_display }}</span>
+                        {% if lead.lead_status == 'new' %}
+                          <span class="badge bg-info text-xs">{{ lead.get_lead_status_display }}</span>
+                        {% elif lead.lead_status == 'contacted' %}
+                          <span class="badge bg-warning text-xs">{{ lead.get_lead_status_display }}</span>
+                        {% elif lead.lead_status == 'qualified' %}
+                          <span class="badge bg-primary text-xs">{{ lead.get_lead_status_display }}</span>
+                        {% elif lead.lead_status == 'closed_won' %}
+                          <span class="badge bg-success text-xs">{{ lead.get_lead_status_display }}</span>
+                        {% elif lead.lead_status == 'closed_lost' %}
+                          <span class="badge bg-danger text-xs">{{ lead.get_lead_status_display }}</span>
+                        {% else %}
+                          <span class="badge bg-secondary text-xs">{{ lead.get_lead_status_display }}</span>
+                        {% endif %}
+                      </div>
+                    </div>
+
+                    <div class="mb-3">
+                      <h6 class="text-warning mb-2">
+                        <i class="bx bx-task me-1"></i>Task
+                      </h6>
+                      <p class="card-text small">{{ lead.task }}</p>
+                    </div>
+
+                    <div class="mb-3">
+                      <div class="row g-2">
+                        {% if lead.number %}
+                          <div class="col-auto">
+                            <a href="{{ lead.get_whatsapp_link }}" target="_blank" 
+                               class="btn btn-sm btn-outline-success">
+                              <i class="bx bxl-whatsapp me-1"></i>{{ lead.number }}
+                            </a>
+                          </div>
+                        {% endif %}
+                        {% if lead.email %}
+                          <div class="col-auto">
+                            <a href="mailto:{{ lead.email }}" class="btn btn-sm btn-outline-primary">
+                              <i class="bx bx-envelope me-1"></i>Email
+                            </a>
+                          </div>
+                        {% endif %}
+                      </div>
+                    </div>
+
+                    <div class="mt-auto">
+                      <small class="text-muted">
+                        <i class="bx bx-time me-1"></i>{{ lead.get_ist_created_date|date:"M d, Y" }}
+                        {% if lead.lead_manager %}
+                          <br><i class="bx bx-user me-1"></i>{{ lead.lead_manager.get_full_name|default:lead.lead_manager.username }}
+                        {% endif %}
+                        {% if lead.pincode %}
+                          <br><i class="bx bx-map me-1"></i>{{ lead.pincode }}
+                        {% endif %}
+                      </small>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="text-center py-5">
+            <div class="text-muted">
+              <i class="bx bx-task fs-1 mb-3"></i>
+              <h5 class="mb-3">No Tasks Found</h5>
+              <p class="mb-4">There are currently no leads with assigned tasks.</p>
+              <a href="{% url 'leads:lead_create' %}" class="btn btn-primary">
+                <i class="bx bx-plus me-1"></i>Create New Lead
+              </a>
+            </div>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

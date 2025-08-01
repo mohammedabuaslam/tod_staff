@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "tod-staff"
+version = "0.1.0"
+description = "The Open Decor staff project"
+authors = ["Mohammed Abu Aslam <mohammed.abu@intellinet.be>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+django = "^5.2.4"
+django-jazzmin = "^3.0.1"
+pytz = "^2025.2"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

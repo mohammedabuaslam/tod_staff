@@ -1,0 +1,192 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block nav_leads_main %}active open{% endblock %}
+{% block nav_lead_create %}active{% endblock %}
+
+{% block content %}
+<div class="row">
+  <div class="col-12">
+    <div class="card">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">{{ title }}</h5>
+        <a href="{% url 'leads:lead_list' %}" class="btn btn-outline-secondary">
+          <i class="bx bx-arrow-back me-1"></i>Back to Lead List
+        </a>
+      </div>
+      <div class="card-body">
+        {% if messages %}
+          {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible" role="alert">
+              {{ message }}
+              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+          {% endfor %}
+        {% endif %}
+
+        <form method="POST">
+          {% csrf_token %}
+          
+          <!-- Basic Information -->
+          <div class="row mb-4">
+            <div class="col-12">
+              <h6 class="text-muted">Basic Information</h6>
+              <hr>
+            </div>
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label for="name" class="form-label">Name</label>
+                <input type="text" class="form-control" id="name" name="name" placeholder="Enter lead name">
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label for="email" class="form-label">Email</label>
+                <input type="email" class="form-control" id="email" name="email" placeholder="Enter email address">
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label for="number" class="form-label">Phone Number</label>
+                <input type="text" class="form-control" id="number" name="number" placeholder="Enter phone number">
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label for="whatsapp_url" class="form-label">WhatsApp URL</label>
+                <input type="url" class="form-control" id="whatsapp_url" name="whatsapp_url" placeholder="https://wa.me/+911234567890">
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label for="pincode" class="form-label">Pincode</label>
+                <input type="text" class="form-control" id="pincode" name="pincode" placeholder="Enter pincode">
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label for="leadsource" class="form-label">Lead Source</label>
+                <select class="form-select" id="leadsource" name="leadsource">
+                  <option value="">Select lead source</option>
+                  {% for value, label in lead_source_choices %}
+                    <option value="{{ value }}">{{ label }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+            </div>
+            <div class="col-12">
+              <div class="mb-3">
+                <label for="address" class="form-label">Address</label>
+                <textarea class="form-control" id="address" name="address" rows="3" placeholder="Enter complete address"></textarea>
+              </div>
+            </div>
+          </div>
+
+          <!-- Lead Management -->
+          <div class="row mb-4">
+            <div class="col-12">
+              <h6 class="text-muted">Lead Management</h6>
+              <hr>
+            </div>
+            <div class="col-md-4">
+              <div class="mb-3">
+                <label for="lead_status" class="form-label">Lead Status</label>
+                <select class="form-select" id="lead_status" name="lead_status">
+                  {% for value, label in lead_status_choices %}
+                    <option value="{{ value }}" {% if value == 'new' %}selected{% endif %}>{{ label }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="mb-3">
+                <label for="lead_stage" class="form-label">Lead Stage</label>
+                <select class="form-select" id="lead_stage" name="lead_stage">
+                  {% for value, label in lead_stage_choices %}
+                    <option value="{{ value }}" {% if value == 'prospect' %}selected{% endif %}>{{ label }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="mb-3">
+                <label for="lead_manager" class="form-label">Lead Manager</label>
+                <select class="form-select" id="lead_manager" name="lead_manager">
+                  <option value="">Select lead manager</option>
+                  {% for user in users %}
+                    <option value="{{ user.id }}">{{ user.get_full_name|default:user.username }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label for="budget" class="form-label">Budget</label>
+                <input type="number" class="form-control" id="budget" name="budget" step="0.01" placeholder="Enter budget amount">
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label for="interested_categories" class="form-label">Interested Categories</label>
+                <input type="text" class="form-control" id="interested_categories" name="interested_categories" placeholder="Enter categories">
+              </div>
+            </div>
+            <div class="col-12">
+              <div class="mb-3">
+                <label for="interested_product_url" class="form-label">Interested Product URL</label>
+                <input type="url" class="form-control" id="interested_product_url" name="interested_product_url" placeholder="Enter product URL">
+              </div>
+            </div>
+          </div>
+
+          <!-- Additional Information -->
+          <div class="row mb-4">
+            <div class="col-12">
+              <h6 class="text-muted">Additional Information</h6>
+              <hr>
+            </div>
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label for="activity" class="form-label">Activity</label>
+                <input type="text" class="form-control" id="activity" name="activity" placeholder="Enter activity">
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label for="task" class="form-label">Task</label>
+                <input type="text" class="form-control" id="task" name="task" placeholder="Enter task">
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label for="notes" class="form-label">Notes</label>
+                <textarea class="form-control" id="notes" name="notes" rows="4" placeholder="Enter notes"></textarea>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label for="remarks" class="form-label">Remarks</label>
+                <textarea class="form-control" id="remarks" name="remarks" rows="4" placeholder="Enter remarks"></textarea>
+              </div>
+            </div>
+          </div>
+
+          <!-- Submit Button -->
+          <div class="row">
+            <div class="col-12">
+              <button type="submit" class="btn btn-primary me-2">
+                <i class="bx bx-save me-1"></i>Create Lead
+              </button>
+              <a href="{% url 'leads:lead_list' %}" class="btn btn-outline-secondary">
+                <i class="bx bx-x me-1"></i>Cancel
+              </a>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

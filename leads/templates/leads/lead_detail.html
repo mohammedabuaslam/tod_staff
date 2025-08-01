@@ -1,0 +1,231 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block nav_leads_main %}active open{% endblock %}
+{% block nav_lead_list %}active{% endblock %}
+
+{% block content %}
+<div class="row">
+  <div class="col-12">
+    <div class="card">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">{{ title }}</h5>
+        <div>
+          <a href="{% url 'leads:lead_list' %}" class="btn btn-outline-secondary me-2">
+            <i class="bx bx-arrow-back me-1"></i>Back to List
+          </a>
+          {% if lead.number %}
+            <a href="{{ lead.get_whatsapp_link }}" target="_blank" class="btn btn-success">
+              <i class="bx bxl-whatsapp me-1"></i>WhatsApp
+            </a>
+          {% endif %}
+        </div>
+      </div>
+      <div class="card-body">
+        
+        <!-- Lead Summary -->
+        <div class="row mb-4">
+          <div class="col-md-8">
+            <h3 class="mb-2">{{ lead.name|default:"Unknown Lead" }}</h3>
+            <div class="d-flex flex-wrap gap-2 mb-3">
+              <span class="badge bg-primary fs-6">{{ lead.get_lead_stage_display }}</span>
+              {% if lead.lead_status == 'new' %}
+                <span class="badge bg-info fs-6">{{ lead.get_lead_status_display }}</span>
+              {% elif lead.lead_status == 'contacted' %}
+                <span class="badge bg-warning fs-6">{{ lead.get_lead_status_display }}</span>
+              {% elif lead.lead_status == 'qualified' %}
+                <span class="badge bg-primary fs-6">{{ lead.get_lead_status_display }}</span>
+              {% elif lead.lead_status == 'closed_won' %}
+                <span class="badge bg-success fs-6">{{ lead.get_lead_status_display }}</span>
+              {% elif lead.lead_status == 'closed_lost' %}
+                <span class="badge bg-danger fs-6">{{ lead.get_lead_status_display }}</span>
+              {% else %}
+                <span class="badge bg-secondary fs-6">{{ lead.get_lead_status_display }}</span>
+              {% endif %}
+              {% if lead.leadsource %}
+                <span class="badge bg-light text-dark fs-6">{{ lead.get_leadsource_display }}</span>
+              {% endif %}
+            </div>
+          </div>
+          <div class="col-md-4 text-md-end">
+            <small class="text-muted">Lead ID: {{ lead.lead_id }}</small>
+            <br><small class="text-muted">Created: {{ lead.get_ist_created_date|date:"M d, Y g:i A" }}</small>
+          </div>
+        </div>
+
+        <!-- Contact Information -->
+        <div class="row mb-4">
+          <div class="col-12">
+            <h6 class="text-primary mb-3">
+              <i class="bx bx-phone me-1"></i>Contact Information
+            </h6>
+          </div>
+          <div class="col-md-6">
+            <table class="table table-borderless table-sm">
+              <tbody>
+                <tr>
+                  <td class="fw-bold text-muted" style="width: 30%;">Email:</td>
+                  <td>
+                    {% if lead.email %}
+                      <a href="mailto:{{ lead.email }}" class="text-decoration-none">{{ lead.email }}</a>
+                    {% else %}
+                      <span class="text-muted">Not provided</span>
+                    {% endif %}
+                  </td>
+                </tr>
+                <tr>
+                  <td class="fw-bold text-muted">Phone:</td>
+                  <td>
+                    {% if lead.number %}
+                      <a href="tel:{{ lead.number }}" class="text-decoration-none">{{ lead.number }}</a>
+                      <a href="{{ lead.get_whatsapp_link }}" target="_blank" class="ms-2 text-success">
+                        <i class="bx bxl-whatsapp"></i>
+                      </a>
+                    {% else %}
+                      <span class="text-muted">Not provided</span>
+                    {% endif %}
+                  </td>
+                </tr>
+                <tr>
+                  <td class="fw-bold text-muted">WhatsApp URL:</td>
+                  <td>
+                    {% if lead.whatsapp_url %}
+                      <a href="{{ lead.whatsapp_url }}" target="_blank" class="text-decoration-none">{{ lead.whatsapp_url }}</a>
+                    {% else %}
+                      <span class="text-muted">Not provided</span>
+                    {% endif %}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="col-md-6">
+            <table class="table table-borderless table-sm">
+              <tbody>
+                <tr>
+                  <td class="fw-bold text-muted" style="width: 30%;">Pincode:</td>
+                  <td>{{ lead.pincode|default:"Not provided" }}</td>
+                </tr>
+                <tr>
+                  <td class="fw-bold text-muted">Address:</td>
+                  <td>{{ lead.address|default:"Not provided" }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Lead Management -->
+        <div class="row mb-4">
+          <div class="col-12">
+            <h6 class="text-primary mb-3">
+              <i class="bx bx-briefcase me-1"></i>Lead Management
+            </h6>
+          </div>
+          <div class="col-md-6">
+            <table class="table table-borderless table-sm">
+              <tbody>
+                <tr>
+                  <td class="fw-bold text-muted" style="width: 30%;">Lead Manager:</td>
+                  <td>
+                    {% if lead.lead_manager %}
+                      <span class="badge bg-info">{{ lead.lead_manager.get_full_name|default:lead.lead_manager.username }}</span>
+                    {% else %}
+                      <span class="text-muted">Not assigned</span>
+                    {% endif %}
+                  </td>
+                </tr>
+                <tr>
+                  <td class="fw-bold text-muted">Budget:</td>
+                  <td>
+                    {% if lead.budget %}
+                      <span class="fw-bold text-success">₹{{ lead.budget|floatformat:2 }}</span>
+                    {% else %}
+                      <span class="text-muted">Not specified</span>
+                    {% endif %}
+                  </td>
+                </tr>
+                <tr>
+                  <td class="fw-bold text-muted">Activity:</td>
+                  <td>{{ lead.activity|default:"No activity recorded" }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="col-md-6">
+            <table class="table table-borderless table-sm">
+              <tbody>
+                <tr>
+                  <td class="fw-bold text-muted" style="width: 30%;">Categories:</td>
+                  <td>{{ lead.interested_categories|default:"Not specified" }}</td>
+                </tr>
+                <tr>
+                  <td class="fw-bold text-muted">Product URL:</td>
+                  <td>
+                    {% if lead.interested_product_url %}
+                      <a href="{{ lead.interested_product_url }}" target="_blank" class="text-decoration-none">
+                        View Product <i class="bx bx-link-external ms-1"></i>
+                      </a>
+                    {% else %}
+                      <span class="text-muted">Not provided</span>
+                    {% endif %}
+                  </td>
+                </tr>
+                <tr>
+                  <td class="fw-bold text-muted">Task:</td>
+                  <td>
+                    {% if lead.task %}
+                      <span class="badge bg-warning text-dark">{{ lead.task }}</span>
+                    {% else %}
+                      <span class="text-muted">No task assigned</span>
+                    {% endif %}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Notes and Remarks -->
+        <div class="row">
+          <div class="col-md-6">
+            <div class="card bg-light h-100">
+              <div class="card-body">
+                <h6 class="card-title text-primary">
+                  <i class="bx bx-note me-1"></i>Notes
+                </h6>
+                <div class="card-text">
+                  {% if lead.notes %}
+                    <div style="white-space: pre-wrap;">{{ lead.notes }}</div>
+                  {% else %}
+                    <span class="text-muted fst-italic">No notes available</span>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="card bg-light h-100">
+              <div class="card-body">
+                <h6 class="card-title text-primary">
+                  <i class="bx bx-comment-detail me-1"></i>Remarks
+                </h6>
+                <div class="card-text">
+                  {% if lead.remarks %}
+                    <div style="white-space: pre-wrap;">{{ lead.remarks }}</div>
+                  {% else %}
+                    <span class="text-muted fst-italic">No remarks available</span>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
