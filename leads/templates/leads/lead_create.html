@@ -47,25 +47,19 @@
                 <input type="email" class="form-control" id="email" name="email" placeholder="Enter email address">
               </div>
             </div>
-            <div class="col-md-6">
+            <div class="col-md-4">
               <div class="mb-3">
                 <label for="number" class="form-label">Phone Number</label>
                 <input type="text" class="form-control" id="number" name="number" placeholder="Enter phone number">
               </div>
             </div>
-            <div class="col-md-6">
-              <div class="mb-3">
-                <label for="whatsapp_url" class="form-label">WhatsApp URL</label>
-                <input type="url" class="form-control" id="whatsapp_url" name="whatsapp_url" placeholder="https://wa.me/+911234567890">
-              </div>
-            </div>
-            <div class="col-md-6">
+            <div class="col-md-4">
               <div class="mb-3">
                 <label for="pincode" class="form-label">Pincode</label>
                 <input type="text" class="form-control" id="pincode" name="pincode" placeholder="Enter pincode">
               </div>
             </div>
-            <div class="col-md-6">
+            <div class="col-md-4">
               <div class="mb-3">
                 <label for="leadsource" class="form-label">Lead Source</label>
                 <select class="form-select" id="leadsource" name="leadsource">
@@ -113,12 +107,14 @@
             <div class="col-md-4">
               <div class="mb-3">
                 <label for="lead_manager" class="form-label">Lead Manager</label>
-                <select class="form-select" id="lead_manager" name="lead_manager">
-                  <option value="">Select lead manager</option>
-                  {% for user in users %}
-                    <option value="{{ user.id }}">{{ user.get_full_name|default:user.username }}</option>
-                  {% endfor %}
+                <select class="form-select" id="lead_manager" name="lead_manager" disabled>
+                  <option value="{{ user.id }}" selected>
+                    {{ user.get_full_name|default:user.username }} (Current User)
+                  </option>
                 </select>
+                <!-- Hidden field to ensure the value is submitted -->
+                <input type="hidden" name="lead_manager" value="{{ user.id }}">
+                <div class="form-text">Lead manager is automatically set to the current user</div>
               </div>
             </div>
             <div class="col-md-6">
@@ -141,23 +137,52 @@
             </div>
           </div>
 
+          <!-- Product Categories -->
+          <div class="row mb-4">
+            <div class="col-12">
+              <h6 class="text-muted">Product Interest</h6>
+              <hr>
+            </div>
+            <div class="col-12">
+              <div class="mb-3">
+                <label class="form-label">Product Categories</label>
+                <div class="row">
+                  {% for category in categories %}
+                    <div class="col-md-6 col-lg-3">
+                      <div class="form-check">
+                        <input class="form-check-input category-checkbox" type="checkbox" 
+                               id="category_{{ category.id }}" 
+                               name="categories" 
+                               value="{{ category.id }}"
+                               data-category-name="{{ category.get_name_display }}">
+                        <label class="form-check-label" for="category_{{ category.id }}">
+                          {{ category.get_name_display }}
+                        </label>
+                      </div>
+                    </div>
+                  {% endfor %}
+                </div>
+                <div class="form-text">Select the product categories this lead is interested in</div>
+              </div>
+            </div>
+            
+            <!-- Manual Product Entry Section -->
+            <div class="col-12" id="productsSection" style="display: none;">
+              <div class="mb-3">
+                <label class="form-label">Product Details</label>
+                <div id="productsByCategory">
+                  <!-- Product entry forms will be dynamically loaded here -->
+                </div>
+                <div class="form-text">Enter product details for each selected category</div>
+              </div>
+            </div>
+          </div>
+
           <!-- Additional Information -->
           <div class="row mb-4">
             <div class="col-12">
               <h6 class="text-muted">Additional Information</h6>
               <hr>
-            </div>
-            <div class="col-md-6">
-              <div class="mb-3">
-                <label for="activity" class="form-label">Activity</label>
-                <input type="text" class="form-control" id="activity" name="activity" placeholder="Enter activity">
-              </div>
-            </div>
-            <div class="col-md-6">
-              <div class="mb-3">
-                <label for="task" class="form-label">Task</label>
-                <input type="text" class="form-control" id="task" name="task" placeholder="Enter task">
-              </div>
             </div>
             <div class="col-md-6">
               <div class="mb-3">
@@ -189,4 +214,69 @@
     </div>
   </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle category selection and product display
+    
+    // Handle category checkbox changes
+    document.querySelectorAll('.category-checkbox').forEach(function(checkbox) {
+        checkbox.addEventListener('change', function() {
+            updateProductDisplay();
+        });
+    });
+    
+    function updateProductDisplay() {
+        const checkedCategories = Array.from(document.querySelectorAll('.category-checkbox:checked'));
+        const productsSection = document.getElementById('productsSection');
+        const productsByContainer = document.getElementById('productsByCategory');
+        
+        if (checkedCategories.length === 0) {
+            productsSection.style.display = 'none';
+            return;
+        }
+        
+        productsSection.style.display = 'block';
+        productsByContainer.innerHTML = '';
+        
+        checkedCategories.forEach(function(categoryCheckbox) {
+            const categoryId = categoryCheckbox.value;
+            const categoryName = categoryCheckbox.getAttribute('data-category-name');
+            
+            const categoryDiv = document.createElement('div');
+            categoryDiv.className = 'mb-4 border rounded p-3 bg-light';
+            categoryDiv.innerHTML = `
+                <h6 class="text-primary mb-3">${categoryName} Products</h6>
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label class="form-label">Product Name</label>
+                            <input type="text" class="form-control" name="product_name_${categoryId}" 
+                                   placeholder="Enter product name" id="product_name_${categoryId}">
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label class="form-label">Product URL</label>
+                            <input type="url" class="form-control" name="product_url_${categoryId}" 
+                                   placeholder="Enter product URL" id="product_url_${categoryId}">
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label class="form-label">Price (₹)</label>
+                            <input type="number" class="form-control" name="product_price_${categoryId}" 
+                                   placeholder="Enter price" id="product_price_${categoryId}" min="0" step="0.01">
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            productsByContainer.appendChild(categoryDiv);
+        });
+    }
+    
+
+});
+</script>
 {% endblock %}

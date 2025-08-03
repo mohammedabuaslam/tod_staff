@@ -170,6 +170,13 @@
                     <div data-i18n="Tasks">Tasks</div>
                   </a>
                 </li>
+                {% if user.is_superuser %}
+                  <li class="menu-item {% block nav_call_recordings %}{% endblock %}">
+                    <a href="{% url 'leads:call_recordings' %}" class="menu-link">
+                      <div data-i18n="Call Recordings">Call Recordings</div>
+                    </a>
+                  </li>
+                {% endif %}
               </ul>
             </li>
 

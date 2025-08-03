@@ -1,0 +1,214 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block nav_leads_main %}active open{% endblock %}
+{% block nav_call_recordings %}active{% endblock %}
+
+{% block content %}
+<div class="row">
+  <div class="col-12">
+    <div class="card">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <div>
+          <h5 class="mb-0">{{ title }}</h5>
+          <small class="text-muted">Total recordings: {{ total_recordings }}</small>
+        </div>
+        <a href="{% url 'leads:lead_create' %}" class="btn btn-primary">
+          <i class="bx bx-plus me-1"></i>Create New Lead
+        </a>
+      </div>
+      <div class="card-body">
+        
+        <!-- Search Section -->
+        <div class="row mb-4">
+          <div class="col-12">
+            <form method="GET" class="d-flex gap-3 align-items-end">
+              <div class="flex-fill" style="max-width: 400px;">
+                <label for="search" class="form-label">Search Recordings</label>
+                <input type="text" class="form-control" id="search" name="search" 
+                       value="{{ search_query }}" placeholder="Search by lead name, description, or user...">
+              </div>
+              <div>
+                <button type="submit" class="btn btn-primary">
+                  <i class="bx bx-search me-1"></i>Search
+                </button>
+              </div>
+              <div>
+                <a href="{% url 'leads:call_recordings' %}" class="btn btn-outline-secondary">
+                  <i class="bx bx-refresh me-1"></i>Clear
+                </a>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        {% if call_activities %}
+          <div class="row">
+            {% for call in call_activities %}
+              <div class="col-md-6 col-lg-4 mb-4">
+                <div class="card border-info border-2 h-100">
+                  <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                      <h6 class="card-title mb-0">
+                        <a href="{% url 'leads:lead_detail' lead_id=call.lead.lead_id %}" class="text-decoration-none">
+                          {{ call.lead.name|default:"Unknown Lead" }}
+                        </a>
+                      </h6>
+                      <span class="badge bg-info">Call</span>
+                    </div>
+                    
+                    <div class="mb-3">
+                      <div class="d-flex flex-wrap gap-1 mb-2">
+                        <span class="badge bg-primary text-xs">{{ call.lead.get_lead_stage_display }}</span>
+                        {% if call.lead.lead_status == 'new' %}
+                          <span class="badge bg-info text-xs">{{ call.lead.get_lead_status_display }}</span>
+                        {% elif call.lead.lead_status == 'contacted' %}
+                          <span class="badge bg-warning text-xs">{{ call.lead.get_lead_status_display }}</span>
+                        {% elif call.lead.lead_status == 'qualified' %}
+                          <span class="badge bg-primary text-xs">{{ call.lead.get_lead_status_display }}</span>
+                        {% elif call.lead.lead_status == 'closed_won' %}
+                          <span class="badge bg-success text-xs">{{ call.lead.get_lead_status_display }}</span>
+                        {% elif call.lead.lead_status == 'closed_lost' %}
+                          <span class="badge bg-danger text-xs">{{ call.lead.get_lead_status_display }}</span>
+                        {% else %}
+                          <span class="badge bg-secondary text-xs">{{ call.lead.get_lead_status_display }}</span>
+                        {% endif %}
+                      </div>
+                    </div>
+
+                    <div class="mb-3">
+                      <h6 class="text-info mb-2">
+                        <i class="bx bx-phone me-1"></i>Call Recording
+                      </h6>
+                      <p class="card-text small">{{ call.description }}</p>
+                    </div>
+
+                    <!-- Audio Player -->
+                    <div class="mb-3">
+                      <div class="card bg-light">
+                        <div class="card-body p-3">
+                          <div class="d-flex align-items-center mb-2">
+                            <i class="bx bx-volume-full text-info me-2"></i>
+                            <strong class="small">Recording</strong>
+                          </div>
+                          <audio controls class="w-100 mb-2">
+                            <source src="{{ call.recording.url }}" type="audio/mpeg">
+                            Your browser does not support the audio element.
+                          </audio>
+                          <div class="d-flex justify-content-between align-items-center">
+                            <small class="text-muted">
+                              {{ call.recording.name|cut:"Call Recordings/" }}
+                            </small>
+                            <a href="{{ call.recording.url }}" download class="btn btn-sm btn-outline-primary">
+                              <i class="bx bx-download me-1"></i>Download
+                            </a>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Contact Information -->
+                    <div class="mb-3">
+                      <div class="row g-2">
+                        {% if call.lead.number %}
+                          <div class="col-auto">
+                            <a href="{{ call.lead.get_whatsapp_link }}" target="_blank" 
+                               class="btn btn-sm btn-outline-success">
+                              <i class="bx bxl-whatsapp me-1"></i>{{ call.lead.number }}
+                            </a>
+                          </div>
+                        {% endif %}
+                        {% if call.lead.email %}
+                          <div class="col-auto">
+                            <a href="mailto:{{ call.lead.email }}" class="btn btn-sm btn-outline-primary">
+                              <i class="bx bx-envelope me-1"></i>Email
+                            </a>
+                          </div>
+                        {% endif %}
+                      </div>
+                    </div>
+
+                    <div class="mt-auto">
+                      <small class="text-muted">
+                        <i class="bx bx-user me-1"></i>{{ call.created_by.get_full_name|default:call.created_by.username }}
+                        <br><i class="bx bx-calendar me-1"></i>{{ call.get_ist_created_date|date:"M d, Y g:i A" }} IST
+                        {% if call.lead.pincode %}
+                          <br><i class="bx bx-map me-1"></i>{{ call.lead.pincode }}
+                        {% endif %}
+                      </small>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+
+          <!-- Pagination -->
+          {% if call_activities.has_other_pages %}
+            <nav aria-label="Call recordings pagination">
+              <ul class="pagination justify-content-center">
+                {% if call_activities.has_previous %}
+                  <li class="page-item">
+                    <a class="page-link" href="?{% if search_query %}search={{ search_query }}&{% endif %}page={{ call_activities.previous_page_number }}">
+                      <i class="bx bx-chevron-left"></i>
+                    </a>
+                  </li>
+                {% else %}
+                  <li class="page-item disabled">
+                    <span class="page-link"><i class="bx bx-chevron-left"></i></span>
+                  </li>
+                {% endif %}
+                
+                {% for num in call_activities.paginator.page_range %}
+                  {% if call_activities.number == num %}
+                    <li class="page-item active">
+                      <span class="page-link">{{ num }}</span>
+                    </li>
+                  {% elif num > call_activities.number|add:'-3' and num < call_activities.number|add:'3' %}
+                    <li class="page-item">
+                      <a class="page-link" href="?{% if search_query %}search={{ search_query }}&{% endif %}page={{ num }}">{{ num }}</a>
+                    </li>
+                  {% endif %}
+                {% endfor %}
+                
+                {% if call_activities.has_next %}
+                  <li class="page-item">
+                    <a class="page-link" href="?{% if search_query %}search={{ search_query }}&{% endif %}page={{ call_activities.next_page_number }}">
+                      <i class="bx bx-chevron-right"></i>
+                    </a>
+                  </li>
+                {% else %}
+                  <li class="page-item disabled">
+                    <span class="page-link"><i class="bx bx-chevron-right"></i></span>
+                  </li>
+                {% endif %}
+              </ul>
+            </nav>
+          {% endif %}
+
+        {% else %}
+          <div class="text-center py-5">
+            <div class="text-muted">
+              <i class="bx bx-volume-full fs-1 mb-3"></i>
+              <h5 class="mb-3">No Call Recordings Found</h5>
+              {% if search_query %}
+                <p class="mb-4">No recordings found matching "{{ search_query }}".</p>
+                <a href="{% url 'leads:call_recordings' %}" class="btn btn-outline-secondary">
+                  <i class="bx bx-refresh me-1"></i>Clear Search
+                </a>
+              {% else %}
+                <p class="mb-4">No call recordings have been uploaded yet.</p>
+                <a href="{% url 'leads:lead_create' %}" class="btn btn-primary">
+                  <i class="bx bx-plus me-1"></i>Create New Lead
+                </a>
+              {% endif %}
+            </div>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
