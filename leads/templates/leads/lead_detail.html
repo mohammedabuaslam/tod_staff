@@ -262,19 +262,7 @@
                 <div class="form-text">Lead manager is automatically set to the current user</div>
               </div>
             </div>
-            <div class="col-md-6">
-              <div class="mb-3">
-                <label for="budget" class="form-label">Budget</label>
-                <input type="number" class="form-control" id="budget" name="budget" step="0.01" value="{{ lead.budget }}">
-              </div>
-            </div>
 
-            <div class="col-12">
-              <div class="mb-3">
-                <label for="interested_product_url" class="form-label">Interested Product URL</label>
-                <input type="url" class="form-control" id="interested_product_url" name="interested_product_url" value="{{ lead.interested_product_url }}">
-              </div>
-            </div>
             <div class="col-12">
               <div class="mb-3">
                 <label class="form-label">Product Categories</label>
@@ -282,11 +270,10 @@
                   {% for category in categories %}
                     <div class="col-md-6 col-lg-3">
                       <div class="form-check">
-                        <input class="form-check-input category-checkbox" type="checkbox" 
+                        <input class="form-check-input" type="checkbox" 
                                id="category_{{ category.id }}" 
                                name="categories" 
                                value="{{ category.id }}"
-                               data-category-name="{{ category.get_name_display }}"
                                {% if category in lead.categories.all %}checked{% endif %}>
                         <label class="form-check-label" for="category_{{ category.id }}">
                           {{ category.get_name_display }}
@@ -298,18 +285,60 @@
                 <div class="form-text">Select the product categories this lead is interested in</div>
               </div>
             </div>
-            
-            <!-- Manual Product Entry Section -->
-            <div class="col-12" id="productsSection" style="display: none;">
-              <div class="mb-3">
-                <label class="form-label">Product Details</label>
-                <div id="productsByCategory">
-                  <!-- Product entry forms will be dynamically loaded here -->
-                </div>
-                <div class="form-text">Enter product details for each selected category</div>
+          </div>
+
+          <!-- Products for Selected Categories -->
+          <div id="products-section" class="row mb-4" style="display: none;">
+            <div class="col-12">
+              <h6 class="text-muted">Products</h6>
+              <hr>
+            </div>
+            <div class="col-12">
+              <div id="category-products">
+                <!-- Dynamic product forms will be added here -->
               </div>
             </div>
           </div>
+
+          <!-- Existing Products Display -->
+          {% if lead.products_data %}
+          <div class="row mb-4">
+            <div class="col-12">
+              <h6 class="text-muted">Current Products</h6>
+              <hr>
+              {% for category_id, category_data in lead.products_data.items %}
+                <div class="mb-3">
+                  <h6>{{ category_data.category_name }}</h6>
+                  {% for product in category_data.products %}
+                    <div class="card mb-2">
+                      <div class="card-body p-2">
+                        <div class="row">
+                          <div class="col-md-4">
+                            <strong>{{ product.name }}</strong>
+                          </div>
+                          <div class="col-md-4">
+                            {% if product.url %}
+                              <a href="{{ product.url }}" target="_blank" class="text-decoration-none">
+                                <i class="bx bx-link-external me-1"></i>View Product
+                              </a>
+                            {% else %}
+                              <span class="text-muted">No URL</span>
+                            {% endif %}
+                          </div>
+                          <div class="col-md-4">
+                            <span class="badge bg-light text-dark">
+                              {% if product.price %}₹ {{ product.price }}{% else %}Price not set{% endif %}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  {% endfor %}
+                </div>
+              {% endfor %}
+            </div>
+          </div>
+          {% endif %}
 
           <!-- Notes and Remarks -->
           <div class="row mb-4">
@@ -498,103 +527,186 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Handle category selection and product display
+    // Product handling functionality
+    const categoryCheckboxes = document.querySelectorAll('input[name="categories"]');
+    const productsSection = document.getElementById('products-section');
+    const categoryProductsContainer = document.getElementById('category-products');
     
-    // Handle category checkbox changes
-    document.querySelectorAll('.category-checkbox').forEach(function(checkbox) {
-        checkbox.addEventListener('change', function() {
-            updateProductDisplay();
+    // Category data for easy lookup
+    const categoryMap = {};
+    {% for category in categories %}
+    categoryMap[{{ category.id }}] = {
+        id: {{ category.id }},
+        name: '{{ category.get_name_display|escapejs }}'
+    };
+    {% endfor %}
+    
+    // Existing products data
+    const existingProductsData = {{ lead.products_data|default:"{}"|safe }};
+    
+    // Store form data to preserve when toggling categories
+    let formData = {};
+    
+    function saveFormData() {
+        formData = {};
+        const productForms = document.querySelectorAll('.product-form');
+        productForms.forEach(form => {
+            const inputs = form.querySelectorAll('input');
+            inputs.forEach(input => {
+                if (input.value.trim()) {
+                    formData[input.name] = input.value;
+                }
+            });
         });
-        
-        // Initialize on page load
-        if (checkbox.checked) {
-            updateProductDisplay();
-        }
-    });
+    }
     
-    // Initialize products display on page load
-    setTimeout(function() {
-        updateProductDisplay();
+    function updateProductSections() {
+        // Save current form data before updating
+        saveFormData();
         
-        // Pre-populate existing product data
-        {% for lead_product in existing_lead_products %}
-            {% if lead_product.product %}
-                const categoryId{{ forloop.counter }} = {{ lead_product.product.category.id }};
-                const productNameField{{ forloop.counter }} = document.getElementById('product_name_' + categoryId{{ forloop.counter }});
-                const productPriceField{{ forloop.counter }} = document.getElementById('product_price_' + categoryId{{ forloop.counter }});
-                
-                if (productNameField{{ forloop.counter }}) {
-                    productNameField{{ forloop.counter }}.value = '{{ lead_product.product.name|escapejs }}';
-                }
-                if (productPriceField{{ forloop.counter }} && {{ lead_product.price_quoted|default:"null" }} !== null) {
-                    productPriceField{{ forloop.counter }}.value = {{ lead_product.price_quoted|default:"''" }};
-                }
-                
-                // Extract URL from notes if available
-                {% if lead_product.notes and 'Product URL:' in lead_product.notes %}
-                    const productUrlField{{ forloop.counter }} = document.getElementById('product_url_' + categoryId{{ forloop.counter }});
-                    if (productUrlField{{ forloop.counter }}) {
-                        const notes = '{{ lead_product.notes|escapejs }}';
-                        const urlMatch = notes.match(/Product URL:\s*(.+)/);
-                        if (urlMatch && urlMatch[1] && urlMatch[1] !== 'None') {
-                            productUrlField{{ forloop.counter }}.value = urlMatch[1].trim();
-                        }
-                    }
-                {% endif %}
-            {% endif %}
-        {% endfor %}
-    }, 200);
-    
-    function updateProductDisplay() {
-        const checkedCategories = Array.from(document.querySelectorAll('.category-checkbox:checked'));
-        const productsSection = document.getElementById('productsSection');
-        const productsByContainer = document.getElementById('productsByCategory');
+        const selectedCategories = Array.from(categoryCheckboxes)
+            .filter(cb => cb.checked)
+            .map(cb => parseInt(cb.value));
         
-        if (checkedCategories.length === 0) {
+        // Get currently displayed categories
+        const currentCategories = Array.from(document.querySelectorAll('[id^="category-section-"]'))
+            .map(section => parseInt(section.id.split('-')[2]));
+        
+        // Hide products section if no categories selected
+        if (selectedCategories.length === 0) {
             productsSection.style.display = 'none';
+            categoryProductsContainer.innerHTML = '';
             return;
         }
         
         productsSection.style.display = 'block';
-        productsByContainer.innerHTML = '';
         
-        checkedCategories.forEach(function(categoryCheckbox) {
-            const categoryId = categoryCheckbox.value;
-            const categoryName = categoryCheckbox.getAttribute('data-category-name');
-            
-            const categoryDiv = document.createElement('div');
-            categoryDiv.className = 'mb-4 border rounded p-3 bg-light';
-            categoryDiv.innerHTML = `
-                <h6 class="text-primary mb-3">${categoryName} Products</h6>
-                <div class="row">
-                    <div class="col-md-4">
-                        <div class="mb-3">
-                            <label class="form-label">Product Name</label>
-                            <input type="text" class="form-control" name="product_name_${categoryId}" 
-                                   placeholder="Enter product name" id="product_name_${categoryId}">
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="mb-3">
-                            <label class="form-label">Product URL</label>
-                            <input type="url" class="form-control" name="product_url_${categoryId}" 
-                                   placeholder="Enter product URL" id="product_url_${categoryId}">
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="mb-3">
-                            <label class="form-label">Price (₹)</label>
-                            <input type="number" class="form-control" name="product_price_${categoryId}" 
-                                   placeholder="Enter price" id="product_price_${categoryId}" min="0" step="0.01">
-                        </div>
-                    </div>
-                </div>
-            `;
-            
-            productsByContainer.appendChild(categoryDiv);
+        // Remove categories that are no longer selected
+        currentCategories.forEach(categoryId => {
+            if (!selectedCategories.includes(categoryId)) {
+                const section = document.getElementById(`category-section-${categoryId}`);
+                if (section) {
+                    section.remove();
+                }
+            }
+        });
+        
+        // Add new categories that were just selected
+        selectedCategories.forEach(categoryId => {
+            const existingSection = document.getElementById(`category-section-${categoryId}`);
+            if (!existingSection) {
+                const category = categoryMap[categoryId];
+                if (category) {
+                    createCategoryProductSection(category);
+                }
+            }
+        });
+        
+        // Restore form data
+        restoreFormData();
+    }
+    
+    function restoreFormData() {
+        Object.keys(formData).forEach(inputName => {
+            const input = document.querySelector(`input[name="${inputName}"]`);
+            if (input) {
+                input.value = formData[inputName];
+            }
         });
     }
     
+    function createCategoryProductSection(category) {
+        const sectionDiv = document.createElement('div');
+        sectionDiv.className = 'mb-4 border p-3 rounded';
+        sectionDiv.id = `category-section-${category.id}`;
+        
+        // Check if there are existing products for this category
+        const existingProducts = existingProductsData[category.id]?.products || [];
+        const productCount = Math.max(1, existingProducts.length);
+        
+        sectionDiv.innerHTML = `
+            <h6 class="mb-3">${category.name} Products</h6>
+            <div id="products-${category.id}">
+                <!-- Products will be added here -->
+            </div>
+            <input type="hidden" name="product_count_${category.id}" id="product-count-${category.id}" value="${productCount}">
+            <button type="button" class="btn btn-outline-primary btn-sm" onclick="addProduct(${category.id})">
+                <i class="bx bx-plus me-1"></i>Add Another Product
+            </button>
+        `;
+        
+        categoryProductsContainer.appendChild(sectionDiv);
+        
+        // Add existing products or one empty form
+        if (existingProducts.length > 0) {
+            existingProducts.forEach((product, index) => {
+                addProduct(category.id, index === 0, product, index);
+            });
+        } else {
+            addProduct(category.id, true);
+        }
+    }
+    
+    window.addProduct = function(categoryId, isFirst = false, existingProduct = null, productIndex = null) {
+        const productsContainer = document.getElementById(`products-${categoryId}`);
+        const countInput = document.getElementById(`product-count-${categoryId}`);
+        const currentCount = parseInt(countInput.value);
+        const index = productIndex !== null ? productIndex : (isFirst ? 0 : currentCount);
+        
+        const productDiv = document.createElement('div');
+        productDiv.className = 'row mb-3 product-form';
+        productDiv.id = `product-${categoryId}-${index}`;
+        
+        const nameValue = existingProduct ? existingProduct.name : '';
+        const urlValue = existingProduct ? existingProduct.url : '';
+        const priceValue = existingProduct ? existingProduct.price : '';
+        
+        productDiv.innerHTML = `
+            <div class="col-md-4">
+                <label class="form-label">Product Name *</label>
+                <input type="text" class="form-control" name="product_name_${categoryId}_${index}" value="${nameValue}" required>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Product URL</label>
+                <input type="url" class="form-control" name="product_url_${categoryId}_${index}" value="${urlValue}">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Price</label>
+                <input type="text" class="form-control" name="product_price_${categoryId}_${index}" value="${priceValue}" placeholder="₹ 0.00">
+            </div>
+            <div class="col-md-1 d-flex align-items-end">
+                ${!isFirst || existingProduct ? `<button type="button" class="btn btn-outline-danger btn-sm" onclick="removeProduct('product-${categoryId}-${index}', ${categoryId})"><i class="bx bx-trash"></i></button>` : ''}
+            </div>
+        `;
+        
+        productsContainer.appendChild(productDiv);
+        
+        if (!isFirst && productIndex === null) {
+            countInput.value = currentCount + 1;
+        }
+    };
+    
+    window.removeProduct = function(productId, categoryId) {
+        const productDiv = document.getElementById(productId);
+        if (productDiv) {
+            productDiv.remove();
+            
+            // Update count
+            const countInput = document.getElementById(`product-count-${categoryId}`);
+            const currentCount = parseInt(countInput.value);
+            if (currentCount > 1) {
+                countInput.value = currentCount - 1;
+            }
+        }
+    };
+    
+    // Add event listeners to category checkboxes
+    categoryCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', updateProductSections);
+    });
+    
+    // Initial setup
+    updateProductSections();
 
 });
 </script>

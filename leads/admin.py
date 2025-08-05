@@ -13,10 +13,10 @@ class LeadAdmin(admin.ModelAdmin):
             'fields': ('lead_id', 'name', 'email', 'number', 'whatsapp_url', 'address', 'pincode')
         }),
         ('Lead Management', {
-            'fields': ('leadsource', 'lead_status', 'lead_stage', 'lead_manager', 'budget', 'categories')
+            'fields': ('leadsource', 'lead_status', 'lead_stage', 'lead_manager', 'categories')
         }),
         ('Additional Information', {
-            'fields': ('activity', 'interested_product_url', 'task', 'notes', 'remarks', 'created_date')
+            'fields': ('activity', 'task', 'notes', 'remarks', 'created_date')
         }),
     )
     

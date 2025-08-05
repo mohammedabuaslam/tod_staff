@@ -38,6 +38,31 @@
   border: none;
 }
 
+/* Completed Task Styles */
+.task-completed {
+  opacity: 0.7;
+  background-color: #f8f9fa !important;
+}
+
+.task-completed .card-title,
+.task-completed .task-description {
+  color: #6c757d !important;
+}
+
+.task-completed .card-title a {
+  color: #6c757d !important;
+  text-decoration: line-through;
+}
+
+.task-completed .badge {
+  opacity: 0.6;
+}
+
+.task-completed:hover {
+  transform: translateY(-2px);
+  opacity: 0.8;
+}
+
 .task-card .badge {
   font-size: 0.75rem;
   font-weight: 500;
@@ -109,8 +134,8 @@
                 <label for="status" class="form-label">Status</label>
                 <select class="form-select" id="status" name="status">
                   <option value="all" {% if status_filter == 'all' %}selected{% endif %}>All Tasks</option>
-                  <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pending</option>
-                  <option value="completed" {% if status_filter == 'completed' %}selected{% endif %}>Completed</option>
+                  <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pending Only</option>
+                  <option value="completed" {% if status_filter == 'completed' %}selected{% endif %}>Completed Only</option>
                 </select>
               </div>
               <div style="min-width: 150px;">
@@ -141,18 +166,19 @@
             {% for task in task_activities %}
               <div class="col-lg-6 col-xl-4 mb-4">
                 <div class="card task-card h-100 position-relative overflow-hidden
-                  {% if task.is_completed %}border-success bg-light-success
+                  {% if task.is_completed %}border-secondary bg-light text-muted task-completed
                   {% elif task.is_overdue %}border-danger bg-light-danger
                   {% else %}border-primary{% endif %} shadow-sm">
                   
                   <!-- Priority Indicator -->
                   <div class="position-absolute top-0 end-0 p-2">
                     <div class="priority-badge 
-                      {% if task.priority == 'high' %}bg-danger
+                      {% if task.is_completed %}bg-secondary
+                      {% elif task.priority == 'high' %}bg-danger
                       {% elif task.priority == 'medium' %}bg-warning
                       {% else %}bg-info{% endif %} rounded-circle d-flex align-items-center justify-content-center" 
-                      style="width: 12px; height: 12px;" 
-                      title="{{ task.get_priority_display }} Priority">
+                      style="width: 12px; height: 12px; {% if task.is_completed %}opacity: 0.5;{% endif %}" 
+                      title="{{ task.get_priority_display }} Priority{% if task.is_completed %} (Completed){% endif %}">
                     </div>
                   </div>
 
@@ -230,7 +256,7 @@
                       
                       <div class="task-status">
                         {% if task.is_completed %}
-                          <span class="badge bg-success rounded-pill">
+                          <span class="badge bg-secondary text-white rounded-pill">
                             <i class="bx bx-check me-1"></i>Completed
                           </span>
                         {% elif task.is_overdue %}

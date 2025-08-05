@@ -11,6 +11,51 @@ from django.contrib.auth.models import User
 from datetime import datetime
 import os
 
+def handle_product_entries(request, lead):
+    """Handle product entries for a lead - store in products_data JSON field"""
+    products_data = {}
+    
+    # Get all category IDs from the request
+    category_ids = request.POST.getlist('categories')
+    
+    for category_id in category_ids:
+        try:
+            category = Category.objects.get(id=category_id)
+            category_products = []
+            
+            # Get product count for this category
+            product_count_key = f'product_count_{category_id}'
+            product_count = int(request.POST.get(product_count_key, 0))
+            
+            # Process each product for this category
+            for i in range(product_count):
+                product_name = request.POST.get(f'product_name_{category_id}_{i}', '').strip()
+                product_url = request.POST.get(f'product_url_{category_id}_{i}', '').strip()
+                product_price = request.POST.get(f'product_price_{category_id}_{i}', '').strip()
+                
+                # Only add product if name is provided
+                if product_name:
+                    product_data = {
+                        'name': product_name,
+                        'url': product_url,
+                        'price': product_price
+                    }
+                    category_products.append(product_data)
+            
+            # Store category data if there are products
+            if category_products:
+                products_data[str(category_id)] = {
+                    'category_name': category.get_name_display(),
+                    'products': category_products
+                }
+                
+        except Category.DoesNotExist:
+            continue
+    
+    # Update lead's products_data
+    lead.products_data = products_data
+    lead.save()
+
 @login_required
 def lead_create_view(request: HttpRequest) -> HttpResponse:
     """Create a new lead"""
@@ -25,10 +70,8 @@ def lead_create_view(request: HttpRequest) -> HttpResponse:
         lead.number = request.POST.get('number')
         lead.notes = request.POST.get('notes')
         lead.remarks = request.POST.get('remarks')
-        lead.lead_status = request.POST.get('lead_status', 'new')
-        lead.lead_stage = request.POST.get('lead_stage', 'prospect')
-        lead.interested_product_url = request.POST.get('interested_product_url')
-        lead.budget = request.POST.get('budget') or None
+        lead.lead_status = request.POST.get('lead_status', 'active')
+        lead.lead_stage = request.POST.get('lead_stage', 'cold_follow_up')
         
         # Set lead manager to current user (auto-assigned)
         lead.lead_manager = request.user
@@ -42,32 +85,8 @@ def lead_create_view(request: HttpRequest) -> HttpResponse:
             categories = Category.objects.filter(id__in=category_ids)
             lead.categories.set(categories)
         
-        # Handle manual product entries
-        for category in Category.objects.all():
-            product_name = request.POST.get(f'product_name_{category.id}')
-            product_url = request.POST.get(f'product_url_{category.id}')
-            product_price = request.POST.get(f'product_price_{category.id}')
-            
-            if product_name:  # Only create if product name is provided
-                # Create or get the product
-                product, created = Product.objects.get_or_create(
-                    category=category,
-                    name=product_name,
-                    defaults={
-                        'description': f'Product from lead {lead.name or "Unknown"}',
-                        'price': float(product_price) if product_price else None,
-                        'is_active': True
-                    }
-                )
-                
-                # Create the lead-product relationship
-                LeadProduct.objects.create(
-                    lead=lead,
-                    product=product,
-                    quantity=1,  # Default quantity
-                    notes=f'Product URL: {product_url}' if product_url else None,
-                    price_quoted=float(product_price) if product_price else None
-                )
+        # Handle manual product entries (multiple products per category)
+        handle_product_entries(request, lead)
         
         messages.success(request, f'Lead "{lead.name or "New Lead"}" has been created successfully!')
         return redirect('leads:lead_detail', lead_id=lead.lead_id)
@@ -144,8 +163,6 @@ def lead_detail_view(request: HttpRequest, lead_id: str) -> HttpResponse:
         lead.leadsource = request.POST.get('leadsource')
         lead.lead_status = request.POST.get('lead_status')
         lead.lead_stage = request.POST.get('lead_stage')
-        lead.budget = request.POST.get('budget') or None
-        lead.interested_product_url = request.POST.get('interested_product_url')
         lead.notes = request.POST.get('notes')
         lead.remarks = request.POST.get('remarks')
         
@@ -160,35 +177,8 @@ def lead_detail_view(request: HttpRequest, lead_id: str) -> HttpResponse:
         else:
             lead.categories.clear()
         
-        # Clear existing lead products
-        lead.lead_products.all().delete()
-        
-        # Handle manual product entries
-        for category in Category.objects.all():
-            product_name = request.POST.get(f'product_name_{category.id}')
-            product_url = request.POST.get(f'product_url_{category.id}')
-            product_price = request.POST.get(f'product_price_{category.id}')
-            
-            if product_name:  # Only create if product name is provided
-                # Create or get the product
-                product, created = Product.objects.get_or_create(
-                    category=category,
-                    name=product_name,
-                    defaults={
-                        'description': f'Product from lead {lead.name or "Unknown"}',
-                        'price': float(product_price) if product_price else None,
-                        'is_active': True
-                    }
-                )
-                
-                # Create the lead-product relationship
-                LeadProduct.objects.create(
-                    lead=lead,
-                    product=product,
-                    quantity=1,  # Default quantity
-                    notes=f'Product URL: {product_url}' if product_url else None,
-                    price_quoted=float(product_price) if product_price else None
-                )
+        # Handle manual product entries (multiple products per category)
+        handle_product_entries(request, lead)
         
         lead.save()
         messages.success(request, 'Lead updated successfully!')
@@ -279,8 +269,8 @@ def tasks_view(request: HttpRequest) -> HttpResponse:
     # Get task-type activities ordered by due date (earliest first), then by creation date
     task_activities = Activity.objects.filter(activity_type='task').select_related('lead', 'created_by').prefetch_related('notes').order_by('due_date', 'created_date')
     
-    # Filter by completion status
-    status_filter = request.GET.get('status', 'pending')
+    # Filter by completion status - default to showing all tasks
+    status_filter = request.GET.get('status', 'all')
     if status_filter == 'completed':
         task_activities = task_activities.filter(is_completed=True)
     elif status_filter == 'pending':

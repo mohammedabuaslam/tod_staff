@@ -75,6 +75,7 @@
               <tr>
                 <th>Lead Name</th>
                 <th>Phone Number</th>
+                <th>Products</th>
                 <th>Lead Stage</th>
                 <th>Lead Status</th>
                 <th>Pincode</th>
@@ -101,6 +102,9 @@
                     {% else %}
                       <span class="text-muted">No phone</span>
                     {% endif %}
+                  </td>
+                  <td>
+                    <small class="text-muted">{{ lead.get_products_summary }}</small>
                   </td>
                   <td>
                     <span class="badge bg-primary">{{ lead.get_lead_stage_display }}</span>
@@ -157,7 +161,7 @@
                 </tr>
               {% empty %}
                 <tr>
-                  <td colspan="7" class="text-center py-4">
+                  <td colspan="8" class="text-center py-4">
                     <div class="text-muted">
                       <i class="bx bx-search-alt-2 fs-2 mb-2"></i>
                       <p class="mb-0">No leads found</p>

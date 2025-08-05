@@ -19,16 +19,24 @@ from django.urls import path, include
 from django.shortcuts import redirect
 from django.conf import settings
 from django.conf.urls.static import static
+from django.http import HttpResponse
 
 def home_redirect(request):
     """Redirect home page to login"""
     return redirect('login')
+
+def ignore_request(request):
+    """Ignore development tool requests"""
+    return HttpResponse(status=204)  # No Content
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', home_redirect, name='home'),
     path('', include('users.urls')),
     path('leads/', include('leads.urls')),
+    # Ignore development tool requests
+    path('__reload__/events/', ignore_request, name='ignore_reload'),
+    path('.well-known/appspecific/com.chrome.devtools.json', ignore_request, name='ignore_devtools'),
 ]
 
 # Serve media files during development

@@ -50,21 +50,18 @@ class Lead(models.Model):
     ]
     
     LEAD_STATUS_CHOICES = [
-        ('new', 'New'),
-        ('contacted', 'Contacted'),
-        ('qualified', 'Qualified'),
-        ('proposal', 'Proposal Sent'),
-        ('negotiation', 'Negotiation'),
-        ('closed_won', 'Closed Won'),
-        ('closed_lost', 'Closed Lost'),
-        ('on_hold', 'On Hold'),
+        ('active', 'Active'),
+        ('inactive', 'Inactive'),
+        ('customer', 'Customer'),
     ]
     
     LEAD_STAGE_CHOICES = [
-        ('prospect', 'Prospect'),
-        ('lead', 'Lead'),
-        ('opportunity', 'Opportunity'),
-        ('customer', 'Customer'),
+        ('cold_follow_up', 'Cold Follow Up'),
+        ('warm_follow_up', 'Warm Follow Up'),
+        ('factory_visit', 'Factory Visit'),
+        ('production', 'Production'),
+        ('delivered', 'Delivered'),
+        ('not_fit', 'Not Fit'),
     ]
 
     lead_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -77,16 +74,15 @@ class Lead(models.Model):
     whatsapp_url = models.URLField(blank=True, null=True)
     notes = models.TextField(blank=True, null=True)
     remarks = models.TextField(blank=True, null=True)
-    lead_status = models.CharField(max_length=20, choices=LEAD_STATUS_CHOICES, default='new')
-    lead_stage = models.CharField(max_length=20, choices=LEAD_STAGE_CHOICES, default='prospect')
+    lead_status = models.CharField(max_length=20, choices=LEAD_STATUS_CHOICES, default='active')
+    lead_stage = models.CharField(max_length=20, choices=LEAD_STAGE_CHOICES, default='cold_follow_up')
     activity = models.CharField(max_length=500, blank=True, null=True)
-    interested_product_url = models.URLField(blank=True, null=True)
     created_date = models.DateTimeField(default=timezone.now)
     lead_manager = models.ForeignKey(User, on_delete=models.SET_NULL, blank=True, null=True, related_name='managed_leads')
-    budget = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True)
     interested_categories = models.CharField(max_length=500, blank=True, null=True)
     task = models.CharField(max_length=500, blank=True, null=True)
     categories = models.ManyToManyField(Category, blank=True, related_name='leads', help_text="Product categories this lead is interested in")
+    products_data = models.JSONField(default=dict, blank=True, help_text="Products data stored as JSON")
 
     class Meta:
         ordering = ['-created_date']
@@ -129,6 +125,37 @@ class Lead(models.Model):
         else:
             utc_date = self.created_date
         return utc_date.astimezone(ist)
+    
+    def get_products_summary(self):
+        """Get a summary of products from JSON data"""
+        if not self.products_data:
+            return "No products"
+        
+        total_products = 0
+        categories = []
+        
+        for category_id, category_data in self.products_data.items():
+            category_name = category_data.get('category_name', 'Unknown')
+            products_count = len(category_data.get('products', []))
+            if products_count > 0:
+                categories.append(f"{category_name} ({products_count})")
+                total_products += products_count
+        
+        if total_products == 0:
+            return "No products"
+        
+        return f"{total_products} products: {', '.join(categories)}"
+    
+    def get_products_by_category(self):
+        """Get products organized by category from JSON data"""
+        if not self.products_data:
+            return {}
+        
+        result = {}
+        for category_id, category_data in self.products_data.items():
+            result[category_data.get('category_name', 'Unknown')] = category_data.get('products', [])
+        
+        return result
 
 
 class Activity(models.Model):
